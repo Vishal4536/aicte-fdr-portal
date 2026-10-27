@@ -86,13 +86,26 @@ export function generateRequestRef(existingRequests = []) {
     String(now.getMonth() + 1).padStart(2, '0') +
     String(now.getDate()).padStart(2, '0');
 
-  // Count how many requests already exist for today to determine sequence
   const todayPrefix = `REQ-${datePart}-`;
-  const todayCount = existingRequests.filter((r) =>
-    r.requestRef?.startsWith(todayPrefix)
-  ).length;
 
-  const seq = String(todayCount + 1).padStart(4, '0');
+  // Find the highest existing sequence number for the current date
+  let maxSeq = 0;
+  if (Array.isArray(existingRequests)) {
+    for (const r of existingRequests) {
+      if (typeof r?.requestRef === 'string' && r.requestRef.startsWith(todayPrefix)) {
+        const rawSuffix = r.requestRef.slice(todayPrefix.length);
+        // Only accept pure digit suffixes to safely ignore malformed values
+        if (/^\d+$/.test(rawSuffix)) {
+          const num = parseInt(rawSuffix, 10);
+          if (num > maxSeq) {
+            maxSeq = num;
+          }
+        }
+      }
+    }
+  }
+
+  const seq = String(maxSeq + 1).padStart(4, '0');
   return `${todayPrefix}${seq}`;
 }
 

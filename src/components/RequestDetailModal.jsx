@@ -14,6 +14,8 @@ import {
   IndianRupee,
   FileText,
   History,
+  Check,
+  Copy,
 } from 'lucide-react';
 import { formatINR, formatDate } from '../data/sampleFDRs';
 import {
@@ -63,10 +65,35 @@ export default function RequestDetailModal({
   onClose,
   onStatusUpdate,
 }) {
+  const [copied, setCopied] = useState(false);
+  const [copyFailed, setCopyFailed] = useState(false);
   const [showStatusForm, setShowStatusForm] = useState(false);
   const [newStatus, setNewStatus] = useState('');
   const [statusRemarks, setStatusRemarks] = useState('');
   const [statusError, setStatusError] = useState('');
+
+  // Reset copied indicator if inspected request changes
+  useEffect(() => {
+    setCopied(false);
+    setCopyFailed(false);
+  }, [request?.id]);
+
+  const handleCopyRef = async () => {
+    try {
+      if (!navigator?.clipboard?.writeText) {
+        throw new Error('Clipboard API unavailable in current environment');
+      }
+      await navigator.clipboard.writeText(request.requestRef);
+      setCopyFailed(false);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.warn('Clipboard write prevented or unsupported:', err);
+      setCopied(false);
+      setCopyFailed(true);
+      setTimeout(() => setCopyFailed(false), 2500);
+    }
+  };
 
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape') onClose(); };
@@ -128,16 +155,24 @@ export default function RequestDetailModal({
                 <h3 className="modal-title text-navy">{request.requestRef}</h3>
                 <button
                   type="button"
-                  className="modal-copy-btn"
-                  onClick={() => {
-                    navigator.clipboard?.writeText(request.requestRef);
-                    setCopied(true);
-                    setTimeout(() => setCopied(false), 2000);
-                  }}
-                  title="Copy Request Reference"
+                  className={`modal-copy-btn ${copyFailed ? 'copy-failed' : ''}`}
+                  onClick={handleCopyRef}
+                  title={
+                    copied
+                      ? 'Copied to clipboard'
+                      : copyFailed
+                      ? 'Clipboard access unavailable or denied'
+                      : 'Copy Request Reference'
+                  }
                 >
-                  {copied ? <Check size={14} className="text-emerald" /> : <Copy size={14} />}
-                  <span>{copied ? 'Copied' : 'Copy'}</span>
+                  {copied ? (
+                    <Check size={14} className="text-emerald" />
+                  ) : copyFailed ? (
+                    <AlertCircle size={14} className="text-danger" />
+                  ) : (
+                    <Copy size={14} />
+                  )}
+                  <span>{copied ? 'Copied' : copyFailed ? 'Failed' : 'Copy'}</span>
                 </button>
               </div>
               <p className="modal-cert-ref">

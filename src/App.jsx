@@ -1,17 +1,24 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import Navbar from './components/Navbar';
 import StatCards from './components/StatCards';
 import FDRTable from './components/FDRTable';
 import FDRDetailModal from './components/FDRDetailModal';
+import FDRFormModal from './components/FDRFormModal';
+import FDRDeleteConfirmModal from './components/FDRDeleteConfirmModal';
 import PlaceholderView from './components/PlaceholderView';
+import Toast from './components/Toast';
 import {
-  initialFDRRecords,
   calculateFDRStatistics,
   computeFDRStatus,
   formatINR,
   formatINRCompact,
 } from './data/sampleFDRs';
+import {
+  loadFDRRecords,
+  saveFDRRecords,
+  generateFDRId,
+} from './data/storage';
 import {
   AlertTriangle,
   Clock,
@@ -21,18 +28,35 @@ import {
   Filter,
   ArrowRight,
   TrendingUp,
-  Download,
+  FilePlus,
+  RefreshCw,
 } from 'lucide-react';
 
 export default function App() {
-  const [records, setRecords] = useState(initialFDRRecords);
+  // Initialize records from localStorage (persisted across reloads)
+  const [records, setRecords] = useState(() => loadFDRRecords());
   const [activeNav, setActiveNav] = useState('dashboard');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatusFilter, setSelectedStatusFilter] = useState('all');
   const [selectedBankFilter, setSelectedBankFilter] = useState('All Banks');
+
+  // Modal and dialog states
   const [selectedFDR, setSelectedFDR] = useState(null);
+  const [isFormModalOpen, setIsFormModalOpen] = useState(false);
+  const [editingFDR, setEditingFDR] = useState(null);
+  const [deletingFDR, setDeletingFDR] = useState(null);
+
+  // Layout states
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+
+  // Toast feedback state
+  const [toast, setToast] = useState(null);
+
+  // Show toast notification helper
+  const showToast = (message, type = 'success', title = '') => {
+    setToast({ message, type, title, id: Date.now() });
+  };
 
   // Dynamically calculate statistics from current records
   const stats = useMemo(() => {
@@ -59,7 +83,7 @@ export default function App() {
     settings: 'Portal Settings & Parameters',
   };
 
-  // Quick action from stat card or maturity tab to set filter
+  // Quick action from stat card to set filter
   const handleStatusFilterChange = (newStatus) => {
     setSelectedStatusFilter(newStatus);
     if (activeNav !== 'dashboard' && activeNav !== 'all_fdrs') {
@@ -67,8 +91,90 @@ export default function App() {
     }
   };
 
+  // Open modal to add a new FDR
+  const handleOpenAddModal = () => {
+    setEditingFDR(null);
+    setIsFormModalOpen(true);
+  };
+
+  // Open modal to edit an existing FDR
+  const handleOpenEditModal = (fdr) => {
+    setEditingFDR(fdr);
+    setIsFormModalOpen(true);
+  };
+
+  // Open modal to confirm delete
+  const handleOpenDeleteModal = (fdr) => {
+    setDeletingFDR(fdr);
+  };
+
+  // Handle Form Submit (Add or Edit)
+  const handleFormSubmit = (recordData, isEditMode) => {
+    let updatedRecords;
+
+    if (isEditMode) {
+      // Edit existing record while preserving stable ID
+      updatedRecords = records.map((item) =>
+        item.id === recordData.id ? { ...recordData } : item
+      );
+      setRecords(updatedRecords);
+      saveFDRRecords(updatedRecords);
+
+      // If the currently inspected detail modal is open for this record, update it
+      if (selectedFDR && selectedFDR.id === recordData.id) {
+        setSelectedFDR(recordData);
+      }
+
+      showToast(
+        `FDR "${recordData.fdrNumber}" updated successfully.`,
+        'success',
+        'Record Saved'
+      );
+    } else {
+      // Add new record with newly generated stable ID
+      const newRecord = {
+        ...recordData,
+        id: generateFDRId(),
+      };
+      updatedRecords = [newRecord, ...records];
+      setRecords(updatedRecords);
+      saveFDRRecords(updatedRecords);
+
+      showToast(
+        `New FDR "${newRecord.fdrNumber}" added to repository.`,
+        'success',
+        'Deposit Registered'
+      );
+    }
+
+    setIsFormModalOpen(false);
+    setEditingFDR(null);
+  };
+
+  // Handle Confirmed Deletion
+  const handleConfirmDelete = (fdrToDelete) => {
+    const updatedRecords = records.filter((r) => r.id !== fdrToDelete.id);
+    setRecords(updatedRecords);
+    saveFDRRecords(updatedRecords);
+
+    // If detail modal is open for this record, close it
+    if (selectedFDR && selectedFDR.id === fdrToDelete.id) {
+      setSelectedFDR(null);
+    }
+
+    setDeletingFDR(null);
+    showToast(
+      `FDR "${fdrToDelete.fdrNumber}" was permanently deleted.`,
+      'info',
+      'Record Deleted'
+    );
+  };
+
   return (
     <div className="portal-layout">
+      {/* Toast Feedback */}
+      <Toast toast={toast} onClose={() => setToast(null)} />
+
       {/* Sidebar */}
       <Sidebar
         activeNav={activeNav}
@@ -116,9 +222,17 @@ export default function App() {
                   </div>
                 </div>
                 <div className="banner-actions">
+                  <button
+                    type="button"
+                    className="btn-banner-add-fdr"
+                    onClick={handleOpenAddModal}
+                  >
+                    <FilePlus size={16} />
+                    <span>Register New Deposit</span>
+                  </button>
                   <div className="system-sync-tag">
                     <span className="dot-pulse"></span>
-                    <span>Direct Bank Reconciliation Active</span>
+                    <span>Persistent Storage Active</span>
                   </div>
                 </div>
               </div>
@@ -164,11 +278,14 @@ export default function App() {
                 </div>
               )}
 
-              {/* Main FDR Registry Table */}
+              {/* Main FDR Registry Table with Full CRUD Actions */}
               <section className="dashboard-section">
                 <FDRTable
                   records={records}
                   onViewDetails={(fdr) => setSelectedFDR(fdr)}
+                  onOpenAddModal={handleOpenAddModal}
+                  onEditRecord={handleOpenEditModal}
+                  onDeleteRecord={handleOpenDeleteModal}
                   searchQuery={searchQuery}
                   setSearchQuery={setSearchQuery}
                   selectedStatusFilter={selectedStatusFilter}
@@ -176,7 +293,7 @@ export default function App() {
                   selectedBankFilter={selectedBankFilter}
                   setSelectedBankFilter={setSelectedBankFilter}
                   title="FDR Records Master Registry"
-                  subtitle="Search, filter, and inspect institutional security deposits across depository banks"
+                  subtitle="Search, filter, edit, or register institutional security deposits across depository banks"
                 />
               </section>
             </div>
@@ -198,6 +315,9 @@ export default function App() {
               <FDRTable
                 records={records}
                 onViewDetails={(fdr) => setSelectedFDR(fdr)}
+                onOpenAddModal={handleOpenAddModal}
+                onEditRecord={handleOpenEditModal}
+                onDeleteRecord={handleOpenDeleteModal}
                 searchQuery={searchQuery}
                 setSearchQuery={setSearchQuery}
                 selectedStatusFilter={selectedStatusFilter}
@@ -248,6 +368,9 @@ export default function App() {
                   return s === 'expiring_soon' || s === 'matured';
                 })}
                 onViewDetails={(fdr) => setSelectedFDR(fdr)}
+                onOpenAddModal={handleOpenAddModal}
+                onEditRecord={handleOpenEditModal}
+                onDeleteRecord={handleOpenDeleteModal}
                 searchQuery={searchQuery}
                 setSearchQuery={setSearchQuery}
                 selectedStatusFilter={selectedStatusFilter}
@@ -280,6 +403,25 @@ export default function App() {
           onClose={() => setSelectedFDR(null)}
         />
       )}
+
+      {/* Add / Edit FDR Form Modal */}
+      <FDRFormModal
+        isOpen={isFormModalOpen}
+        onClose={() => {
+          setIsFormModalOpen(false);
+          setEditingFDR(null);
+        }}
+        onSubmit={handleFormSubmit}
+        editingRecord={editingFDR}
+        existingRecords={records}
+      />
+
+      {/* Delete Confirmation Dialog Modal */}
+      <FDRDeleteConfirmModal
+        fdr={deletingFDR}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setDeletingFDR(null)}
+      />
     </div>
   );
 }

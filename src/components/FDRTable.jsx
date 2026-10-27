@@ -3,6 +3,8 @@ import {
   Search,
   Filter,
   Eye,
+  Edit3,
+  Trash2,
   Copy,
   Check,
   ChevronLeft,
@@ -15,7 +17,7 @@ import {
   RefreshCw,
   Clock,
   ArrowUpDown,
-  Download,
+  FilePlus,
 } from 'lucide-react';
 import {
   formatINR,
@@ -29,6 +31,9 @@ import {
 export default function FDRTable({
   records,
   onViewDetails,
+  onOpenAddModal,
+  onEditRecord,
+  onDeleteRecord,
   searchQuery,
   setSearchQuery,
   selectedStatusFilter,
@@ -38,6 +43,7 @@ export default function FDRTable({
   title = 'Security Deposit / FDR Master Registry',
   subtitle = 'Centralized view of AICTE joint-account fixed deposit receipts',
   hideFilters = false,
+  hideAddButton = false,
 }) {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -97,8 +103,8 @@ export default function FDRTable({
         valA = Number(a.principalAmount) || 0;
         valB = Number(b.principalAmount) || 0;
       } else if (sortBy === 'institutionName') {
-        valA = a.institutionName.toLowerCase();
-        valB = b.institutionName.toLowerCase();
+        valA = (a.institutionName || '').toLowerCase();
+        valB = (b.institutionName || '').toLowerCase();
       } else {
         // maturityDate default
         valA = new Date(a.maturityDate).getTime() || 0;
@@ -158,6 +164,7 @@ export default function FDRTable({
             <span className="count-badge">{totalItems}</span>
             <span>of {records.length} records</span>
           </div>
+
           {isFiltered && (
             <button
               type="button"
@@ -165,7 +172,18 @@ export default function FDRTable({
               onClick={handleResetFilters}
             >
               <RefreshCw size={14} />
-              <span>Reset Filters</span>
+              <span>Reset</span>
+            </button>
+          )}
+
+          {!hideAddButton && onOpenAddModal && (
+            <button
+              type="button"
+              className="btn-add-fdr"
+              onClick={onOpenAddModal}
+            >
+              <FilePlus size={16} />
+              <span>Add FDR Record</span>
             </button>
           )}
         </div>
@@ -267,7 +285,7 @@ export default function FDRTable({
                 </div>
               </th>
               <th className="col-status">Status</th>
-              <th className="col-actions text-center">Action</th>
+              <th className="col-actions text-center">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -280,7 +298,7 @@ export default function FDRTable({
                   <tr
                     key={record.id}
                     className={`fdr-row row-status-${status}`}
-                    onClick={() => onViewDetails(record)}
+                    onClick={() => onViewDetails && onViewDetails(record)}
                   >
                     {/* FDR Reference */}
                     <td className="col-fdr">
@@ -414,20 +432,43 @@ export default function FDRTable({
                       )}
                     </td>
 
-                    {/* Actions */}
+                    {/* Actions Group: Inspect, Edit, Delete */}
                     <td
                       className="col-actions text-center"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <button
-                        type="button"
-                        className="btn-view-details"
-                        onClick={() => onViewDetails(record)}
-                        title="View Full FDR Particulars"
-                      >
-                        <Eye size={15} />
-                        <span>Inspect</span>
-                      </button>
+                      <div className="row-actions-group">
+                        <button
+                          type="button"
+                          className="btn-action-icon btn-action-inspect"
+                          onClick={() => onViewDetails && onViewDetails(record)}
+                          title="Inspect FDR Particulars"
+                        >
+                          <Eye size={14} />
+                        </button>
+
+                        {onEditRecord && (
+                          <button
+                            type="button"
+                            className="btn-action-icon btn-action-edit"
+                            onClick={() => onEditRecord(record)}
+                            title="Edit FDR Record"
+                          >
+                            <Edit3 size={14} />
+                          </button>
+                        )}
+
+                        {onDeleteRecord && (
+                          <button
+                            type="button"
+                            className="btn-action-icon btn-action-delete"
+                            onClick={() => onDeleteRecord(record)}
+                            title="Delete FDR Record"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );
@@ -445,14 +486,26 @@ export default function FDRTable({
                       No fixed deposit records match your current search query or
                       filter criteria. Try adjusting your parameters or clear all filters.
                     </p>
-                    <button
-                      type="button"
-                      className="btn-clear-empty"
-                      onClick={handleResetFilters}
-                    >
-                      <RefreshCw size={15} />
-                      <span>Clear All Filters</span>
-                    </button>
+                    <div className="empty-state-actions">
+                      <button
+                        type="button"
+                        className="btn-clear-empty"
+                        onClick={handleResetFilters}
+                      >
+                        <RefreshCw size={15} />
+                        <span>Clear All Filters</span>
+                      </button>
+                      {!hideAddButton && onOpenAddModal && (
+                        <button
+                          type="button"
+                          className="btn-add-from-empty"
+                          onClick={onOpenAddModal}
+                        >
+                          <FilePlus size={15} />
+                          <span>Add New FDR Record</span>
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </td>
               </tr>

@@ -1,0 +1,16 @@
+
+# Dependencies and generated files
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+.DS_Store
+
+# Dependencies and generated files
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+.DS_Store

@@ -11,6 +11,8 @@ import Toast from './components/Toast';
 import RequestManagement from './components/RequestManagement';
 import RequestFormModal from './components/RequestFormModal';
 import RequestDetailModal from './components/RequestDetailModal';
+import MaturityAlerts from './components/MaturityAlerts';
+import Reports from './components/Reports';
 import { loadRequests, saveRequests, applyStatusChange } from './data/requestStorage';
 import {
   calculateFDRStatistics,
@@ -373,55 +375,13 @@ export default function App() {
 
           {/* VIEW: MATURITY ALERTS */}
           {activeNav === 'maturity_alerts' && (
-            <div className="view-maturity-alerts">
-              <div className="maturity-header-card">
-                <div className="maturity-header-content">
-                  <div className="alert-big-icon">
-                    <Clock size={32} className="text-amber" />
-                  </div>
-                  <div>
-                    <h2 className="maturity-view-title">
-                      Maturity & Regulatory Expiry Surveillance
-                    </h2>
-                    <p className="maturity-view-desc">
-                      Mandatory tracking for FDRs within the 30-day expiry threshold and
-                      matured deposits requiring renewal or release under APH Norms.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="maturity-stats-pillbox">
-                  <div className="maturity-stat-pill warning">
-                    <span className="pill-number">{stats.expiringSoonCount}</span>
-                    <span className="pill-label">Expiring ≤30 Days</span>
-                  </div>
-                  <div className="maturity-stat-pill danger">
-                    <span className="pill-number">{stats.maturedCount}</span>
-                    <span className="pill-label">Already Matured</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Table filtered specifically to Expiring Soon & Matured */}
-              <FDRTable
-                records={records.filter((r) => {
-                  const s = computeFDRStatus(r);
-                  return s === 'expiring_soon' || s === 'matured';
-                })}
-                onViewDetails={(fdr) => setSelectedFDR(fdr)}
-                onOpenAddModal={handleOpenAddModal}
-                onEditRecord={handleOpenEditModal}
-                onDeleteRecord={handleOpenDeleteModal}
-                searchQuery={searchQuery}
-                setSearchQuery={setSearchQuery}
-                selectedStatusFilter={selectedStatusFilter}
-                setSelectedStatusFilter={setSelectedStatusFilter}
-                selectedBankFilter={selectedBankFilter}
-                setSelectedBankFilter={setSelectedBankFilter}
-                title="High-Priority Expiry Watchlist"
-                subtitle="Showing all deposits where remaining days ≤ 30 or maturity date has passed"
-              />
-            </div>
+            <MaturityAlerts
+              records={records}
+              onViewDetails={(fdr) => setSelectedFDR(fdr)}
+              onEditRecord={handleOpenEditModal}
+              onDeleteRecord={handleOpenDeleteModal}
+              onOpenAddModal={handleOpenAddModal}
+            />
           )}
 
           {/* VIEW: RENEWAL & RELEASE REQUEST MANAGEMENT */}
@@ -440,8 +400,17 @@ export default function App() {
             />
           )}
 
-          {/* VIEW: SECONDARY SECTIONS (PLACEHOLDERS) */}
-          {(activeNav === 'reports' || activeNav === 'settings') && (
+          {/* VIEW: REPORTS & CAG AUDIT SUITE */}
+          {activeNav === 'reports' && (
+            <Reports
+              records={records}
+              onViewRecord={(fdr) => setSelectedFDR(fdr)}
+              showToast={showToast}
+            />
+          )}
+
+          {/* VIEW: SETTINGS (PLACEHOLDER) */}
+          {activeNav === 'settings' && (
             <PlaceholderView
               sectionId={activeNav}
               onNavigateToDashboard={() => setActiveNav('dashboard')}

@@ -8,6 +8,10 @@ import FDRFormModal from './components/FDRFormModal';
 import FDRDeleteConfirmModal from './components/FDRDeleteConfirmModal';
 import PlaceholderView from './components/PlaceholderView';
 import Toast from './components/Toast';
+import RequestManagement from './components/RequestManagement';
+import RequestFormModal from './components/RequestFormModal';
+import RequestDetailModal from './components/RequestDetailModal';
+import { loadRequests, saveRequests, applyStatusChange } from './data/requestStorage';
 import {
   calculateFDRStatistics,
   computeFDRStatus,
@@ -49,6 +53,12 @@ export default function App() {
   // Layout states
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+
+  // Request Management state (stored separately from FDR records)
+  const [requests, setRequests] = useState(() => loadRequests());
+  const [isRequestFormOpen, setIsRequestFormOpen] = useState(false);
+  const [requestFormType, setRequestFormType] = useState('Renewal');
+  const [selectedRequest, setSelectedRequest] = useState(null);
 
   // Toast feedback state
   const [toast, setToast] = useState(null);
@@ -170,6 +180,37 @@ export default function App() {
     );
   };
 
+
+  // ── Request Management Handlers ────────────────────────────────────────────
+
+  // Called when a new request is submitted from the form modal
+  const handleRequestSubmit = (newRequest) => {
+    const updatedRequests = [newRequest, ...requests];
+    setRequests(updatedRequests);
+    saveRequests(updatedRequests);
+    setIsRequestFormOpen(false);
+    showToast(
+      'Request ' + newRequest.requestRef + ' submitted successfully.',
+      'success',
+      'Request Submitted'
+    );
+  };
+
+  // Called when the detail modal issues a status update
+  const handleRequestStatusUpdate = (updatedRequest) => {
+    const updatedRequests = requests.map((r) =>
+      r.id === updatedRequest.id ? updatedRequest : r
+    );
+    setRequests(updatedRequests);
+    saveRequests(updatedRequests);
+    // Keep the detail modal open with fresh data
+    setSelectedRequest(updatedRequest);
+    showToast(
+      'Request ' + updatedRequest.requestRef + ' status updated to ' + updatedRequest.status + '.',
+      'success',
+      'Status Updated'
+    );
+  };
   return (
     <div className="portal-layout">
       {/* Toast Feedback */}
@@ -383,11 +424,24 @@ export default function App() {
             </div>
           )}
 
+          {/* VIEW: RENEWAL & RELEASE REQUEST MANAGEMENT */}
+          {(activeNav === 'renewal_requests' || activeNav === 'release_requests') && (
+            <RequestManagement
+              requests={requests}
+              fdrRecords={records}
+              activeNav={activeNav}
+              onNewRequest={(defaultType) => {
+                setRequestFormType(
+                  defaultType || (activeNav === 'release_requests' ? 'Release' : 'Renewal')
+                );
+                setIsRequestFormOpen(true);
+              }}
+              onViewRequest={(req) => setSelectedRequest(req)}
+            />
+          )}
+
           {/* VIEW: SECONDARY SECTIONS (PLACEHOLDERS) */}
-          {(activeNav === 'renewal_requests' ||
-            activeNav === 'release_requests' ||
-            activeNav === 'reports' ||
-            activeNav === 'settings') && (
+          {(activeNav === 'reports' || activeNav === 'settings') && (
             <PlaceholderView
               sectionId={activeNav}
               onNavigateToDashboard={() => setActiveNav('dashboard')}
@@ -422,6 +476,26 @@ export default function App() {
         onConfirm={handleConfirmDelete}
         onCancel={() => setDeletingFDR(null)}
       />
+
+      {/* Request Form Modal — New Renewal or Release Request */}
+      <RequestFormModal
+        isOpen={isRequestFormOpen}
+        onClose={() => setIsRequestFormOpen(false)}
+        onSubmit={handleRequestSubmit}
+        fdrRecords={records}
+        existingRequests={requests}
+        defaultRequestType={requestFormType}
+      />
+
+      {/* Request Detail Modal — View and Update Request Status */}
+      {selectedRequest && (
+        <RequestDetailModal
+          request={selectedRequest}
+          fdrRecords={records}
+          onClose={() => setSelectedRequest(null)}
+          onStatusUpdate={handleRequestStatusUpdate}
+        />
+      )}
     </div>
   );
 }

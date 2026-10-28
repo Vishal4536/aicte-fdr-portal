@@ -22,6 +22,7 @@ export default function Sidebar({
   setMobileOpen,
   expiringCount = 0,
   maturedCount = 0,
+  renewalCount = 0,
 }) {
   const navItems = [
     {
@@ -47,7 +48,7 @@ export default function Sidebar({
       id: 'renewal_requests',
       label: 'Renewal Requests',
       icon: RotateCw,
-      badge: '2 New',
+      badge: renewalCount > 0 ? (renewalCount === 1 ? '1 New' : `${renewalCount} New`) : null,
       badgeVariant: 'info',
     },
     {

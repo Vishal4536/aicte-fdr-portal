@@ -265,3 +265,81 @@ export function applyStatusChange(request, newStatus, changeRemarks = '') {
     statusHistory: [...(request.statusHistory || []), historyEntry],
   };
 }
+
+/**
+ * Synchronize a master FDR record with an Approved renewal or release request.
+ *
+ * Rules:
+ * - If request.status !== 'Approved' or fdr is null/undefined, returns fdr unchanged.
+ * - Renewal:
+ *   - Updates maturityDate if proposedMaturityDate is provided.
+ *   - Updates tenureYears if proposedTenure is provided (parsed as integer).
+ *   - Updates interestRate if proposedInterestRate is provided.
+ *   - Appends trace notice to remarks indicating renewal approval and requestRef.
+ *   - Preserves stable ID and all other existing properties.
+ * - Release:
+ *   - Updates lienStatus to 'Lien Released / Encashment NOC Issued'.
+ *   - Appends trace notice to remarks indicating release NOC issuance and requestRef.
+ *   - Preserves stable ID and all other existing properties.
+ *
+ * @param {object} fdr - Target FDR master record
+ * @param {object} request - Approved request object
+ * @returns {object} Updated FDR record preserving stable ID
+ */
+export function synchronizeFDRWithApprovedRequest(fdr, request) {
+  if (!fdr || !request || request.status !== 'Approved') {
+    return fdr;
+  }
+
+  if (request.requestType === 'Renewal') {
+    const renewal = request.renewalDetails || {};
+    let tenure = fdr.tenureYears;
+    if (renewal.proposedTenure) {
+      const parsed = parseInt(renewal.proposedTenure, 10);
+      if (!isNaN(parsed) && parsed > 0) {
+        tenure = parsed;
+      }
+    }
+
+    const note = `[Renewal Approved: Ref ${request.requestRef}]`;
+    const existingRemarks = fdr.remarks || '';
+    const updatedRemarks = existingRemarks.includes(note)
+      ? existingRemarks
+      : existingRemarks
+      ? `${existingRemarks} ${note}`
+      : `Renewed under AICTE Approval. ${note}`;
+
+    return {
+      ...fdr,
+      id: fdr.id, // Strictly preserve stable ID
+      maturityDate: renewal.proposedMaturityDate || fdr.maturityDate,
+      interestRate:
+        renewal.proposedInterestRate != null && !isNaN(renewal.proposedInterestRate)
+          ? Number(renewal.proposedInterestRate)
+          : fdr.interestRate,
+      tenureYears: tenure,
+      remarks: updatedRemarks,
+    };
+  }
+
+  if (request.requestType === 'Release') {
+    const release = request.releaseDetails || {};
+    const reasonText = release.releaseReason ? ` (${release.releaseReason})` : '';
+    const note = `[Security Deposit Released: Ref ${request.requestRef}${reasonText}]`;
+    const existingRemarks = fdr.remarks || '';
+    const updatedRemarks = existingRemarks.includes(note)
+      ? existingRemarks
+      : existingRemarks
+      ? `${existingRemarks} ${note}`
+      : `AICTE Security Deposit Released. ${note}`;
+
+    return {
+      ...fdr,
+      id: fdr.id, // Strictly preserve stable ID
+      lienStatus: 'Lien Released / Encashment NOC Issued',
+      remarks: updatedRemarks,
+    };
+  }
+
+  return fdr;
+}

@@ -30,6 +30,8 @@ import {
   Search,
   Filter,
   Eye,
+  Edit3,
+  Trash2,
   Copy,
   Check,
   RefreshCw,
@@ -561,7 +563,7 @@ export default function MaturityAlerts({
                     </div>
                   </th>
                   <th>Urgency Status</th>
-                  <th className="text-center">Action</th>
+                  <th className="text-center">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -670,17 +672,40 @@ export default function MaturityAlerts({
                         </span>
                       </td>
 
-                      {/* Action */}
+                      {/* Actions */}
                       <td className="text-center" onClick={(e) => e.stopPropagation()}>
-                        <button
-                          type="button"
-                          className="btn-inspect-action"
-                          onClick={() => handleInspect(record)}
-                          title="Inspect FDR Details"
-                        >
-                          <Eye size={13} />
-                          <span>Inspect</span>
-                        </button>
+                        <div className="row-actions-group">
+                          <button
+                            type="button"
+                            className="btn-action-icon btn-action-inspect"
+                            onClick={() => handleInspect(record)}
+                            title="Inspect FDR Details"
+                          >
+                            <Eye size={14} />
+                          </button>
+
+                          {onEditRecord && (
+                            <button
+                              type="button"
+                              className="btn-action-icon btn-action-edit"
+                              onClick={() => onEditRecord(record)}
+                              title="Edit FDR Record"
+                            >
+                              <Edit3 size={14} />
+                            </button>
+                          )}
+
+                          {onDeleteRecord && (
+                            <button
+                              type="button"
+                              className="btn-action-icon btn-action-delete"
+                              onClick={() => onDeleteRecord(record)}
+                              title="Delete FDR Record"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );

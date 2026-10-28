@@ -180,6 +180,31 @@ test('CSV Escaping: Null and undefined values produce empty string', () => {
   assert.equal(escapeCsvCell(undefined), '');
 });
 
+test('CSV Formula Injection: Values beginning with =, +, -, and @ are neutralized', () => {
+  // Direct formula triggers (plain alphanumeric without quotes/commas/newlines)
+  assert.equal(escapeCsvCell('=SUM(A1:B1)'), "'=SUM(A1:B1)");
+  assert.equal(escapeCsvCell('+cmdRun'), "'+cmdRun");
+  assert.equal(escapeCsvCell('-2+3+calc'), "'-2+3+calc");
+  assert.equal(escapeCsvCell('@maliciousSite'), "'@maliciousSite");
+});
+
+test('CSV Formula Injection: Neutralized formulas with commas, quotes, and newlines preserve CSV escaping', () => {
+  // Formula containing commas (must be quote-enclosed)
+  assert.equal(escapeCsvCell('=HYPERLINK("http://evil.com","click")'), '"\'=HYPERLINK(""http://evil.com"",""click"")"');
+
+  // Formula containing double quotes
+  assert.equal(escapeCsvCell('@cmd"payload"'), '"\'@cmd""payload"""');
+
+  // Formula containing newlines
+  assert.equal(escapeCsvCell('+Line1\nLine2'), '"\'+Line1\nLine2"');
+
+  // Formula containing commas, quotes, and newlines all together
+  assert.equal(
+    escapeCsvCell('-calc,"run",\nnext'),
+    '"\'-calc,""run"",\nnext"'
+  );
+});
+
 test('CSV Generation: Correct headers and row count', () => {
   const sample = initialFDRRecords.slice(0, 3);
   const csv = generateCsvContent(sample);

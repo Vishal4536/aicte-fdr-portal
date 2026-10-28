@@ -13,7 +13,12 @@ import RequestFormModal from './components/RequestFormModal';
 import RequestDetailModal from './components/RequestDetailModal';
 import MaturityAlerts from './components/MaturityAlerts';
 import Reports from './components/Reports';
-import { loadRequests, saveRequests, applyStatusChange } from './data/requestStorage';
+import {
+  loadRequests,
+  saveRequests,
+  applyStatusChange,
+  synchronizeFDRWithApprovedRequest,
+} from './data/requestStorage';
 import {
   calculateFDRStatistics,
   computeFDRStatus,
@@ -205,6 +210,28 @@ export default function App() {
     );
     setRequests(updatedRequests);
     saveRequests(updatedRequests);
+
+    // If request has transitioned to Approved, safely synchronize linked FDR master record
+    if (updatedRequest.status === 'Approved' && updatedRequest.fdrId) {
+      const targetFDR = records.find(
+        (r) => r.id === updatedRequest.fdrId || (updatedRequest.fdrNumber && r.fdrNumber === updatedRequest.fdrNumber)
+      );
+
+      if (targetFDR) {
+        const synchronizedFDR = synchronizeFDRWithApprovedRequest(targetFDR, updatedRequest);
+        const updatedRecords = records.map((r) =>
+          r.id === targetFDR.id ? synchronizedFDR : r
+        );
+        setRecords(updatedRecords);
+        saveFDRRecords(updatedRecords);
+
+        // Keep inspected detail modal in sync if open on this record
+        if (selectedFDR && selectedFDR.id === targetFDR.id) {
+          setSelectedFDR(synchronizedFDR);
+        }
+      }
+    }
+
     // Keep the detail modal open with fresh data
     setSelectedRequest(updatedRequest);
     showToast(
@@ -213,6 +240,14 @@ export default function App() {
       'Status Updated'
     );
   };
+
+  // Derive active / pending renewal requests count for sidebar badge
+  const pendingRenewalCount = useMemo(() => {
+    return requests.filter(
+      (r) => r.requestType === 'Renewal' && (r.status === 'Requested' || r.status === 'Under Review')
+    ).length;
+  }, [requests]);
+
   return (
     <div className="portal-layout">
       {/* Toast Feedback */}
@@ -228,6 +263,7 @@ export default function App() {
         setMobileOpen={setMobileSidebarOpen}
         expiringCount={stats.expiringSoonCount}
         maturedCount={stats.maturedCount}
+        renewalCount={pendingRenewalCount}
       />
 
       {/* Main Content Area */}

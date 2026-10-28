@@ -18,7 +18,14 @@ export function escapeCsvCell(value) {
   if (value === null || value === undefined) {
     return '';
   }
-  const str = String(value);
+  let str = String(value);
+
+  // Spreadsheet formula injection mitigation (CWE-1236)
+  // Neutralize formula triggers (=, +, -, @) by prepending a single quote to force literal text interpretation
+  if (/^[=+\-@]/.test(str)) {
+    str = `'${str}`;
+  }
+
   if (/[",\r\n]/.test(str)) {
     return `"${str.replace(/"/g, '""')}"`;
   }

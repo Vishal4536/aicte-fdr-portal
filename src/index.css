@@ -2748,6 +2748,497 @@ input, select, textarea {
   color: var(--text-main);
 }
 
+
+/* ==========================================================================
+   RENEWAL & RELEASE REQUEST MANAGEMENT — Feature-specific Styles
+   Task 2: RequestManagement, RequestFormModal, RequestDetailModal
+   ========================================================================== */
+
+/* ── Request Status Badges ──────────────────────────────────────────────────── */
+.req-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 9999px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.req-badge-requested {
+  background-color: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+
+.req-badge-review {
+  background-color: #fefce8;
+  color: #854d0e;
+  border: 1px solid #fef08a;
+}
+
+.req-badge-approved {
+  background-color: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+}
+
+.req-badge-rejected {
+  background-color: #fff1f2;
+  color: #be123c;
+  border: 1px solid #fecdd3;
+}
+
+/* ── Request Type Badges ─────────────────────────────────────────────────────── */
+.req-type-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.req-type-renewal {
+  background-color: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+
+.req-type-release {
+  background-color: #fffbeb;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+/* ── Request Form Modal ──────────────────────────────────────────────────────── */
+.req-form-modal {
+  max-width: 680px;
+  width: 95%;
+}
+
+.req-type-toggle {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.req-type-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1rem;
+  border: 2px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background-color: #f8fafc;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.req-type-btn:hover {
+  border-color: var(--color-primary-blue);
+  color: var(--color-primary-blue);
+  background-color: #eff6ff;
+}
+
+.req-type-active-renewal {
+  border-color: var(--color-primary-blue) !important;
+  background-color: #eff6ff !important;
+  color: var(--color-primary-blue) !important;
+  box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.12);
+}
+
+.req-type-active-release {
+  border-color: #d97706 !important;
+  background-color: #fffbeb !important;
+  color: #b45309 !important;
+  box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.12);
+}
+
+/* FDR search within form */
+.req-fdr-search-wrap {
+  position: relative;
+  margin-bottom: 0.75rem;
+}
+
+.req-fdr-search-icon {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+}
+
+.req-fdr-search-input {
+  padding-left: 2.25rem !important;
+  width: 100%;
+}
+
+/* FDR selection list */
+.req-fdr-list {
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  background-color: #f8fafc;
+  margin-bottom: 0.75rem;
+}
+
+.req-fdr-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1.5rem;
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+}
+
+.req-fdr-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.65rem 0.875rem;
+  border-bottom: 1px solid var(--border-light);
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.12s ease;
+}
+
+.req-fdr-item:last-child {
+  border-bottom: none;
+}
+
+.req-fdr-item:hover {
+  background-color: #eff6ff;
+}
+
+.req-fdr-item-selected {
+  background-color: #eff6ff !important;
+  border-left: 3px solid var(--color-primary-blue);
+}
+
+.req-fdr-item-left {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.req-fdr-unselected-dot {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--border-medium);
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.req-fdr-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.req-fdr-number {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--color-primary-navy);
+}
+
+.req-fdr-bank {
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+}
+
+.req-fdr-item-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.1rem;
+}
+
+.req-fdr-amount {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--color-primary-navy);
+}
+
+.req-fdr-dates {
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+}
+
+/* Selected FDR preview card */
+.req-fdr-selected-preview {
+  background-color: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: var(--radius-md);
+  padding: 0.75rem 1rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.35rem 1rem;
+}
+
+.preview-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+}
+
+.preview-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: #0369a1;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.preview-val {
+  font-size: 0.8125rem;
+  color: var(--text-main);
+}
+
+/* Error banner */
+.req-field-error-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: #fff1f2;
+  border: 1px solid #fecdd3;
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+  color: #be123c;
+  margin: 0.5rem 0;
+}
+
+/* ── Step 2 — Selected FDR summary banner at top of form ─────────────────── */
+.req-selected-fdr-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background-color: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: var(--radius-md);
+  padding: 0.6rem 0.875rem;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.25rem;
+}
+
+.req-banner-icon {
+  flex-shrink: 0;
+}
+
+.req-banner-type {
+  font-weight: 700;
+  color: var(--color-primary-navy);
+}
+
+.req-banner-fdrno {
+  color: var(--color-primary-blue);
+}
+
+.req-banner-bank {
+  color: var(--text-muted);
+}
+
+/* ── Request Detail Modal ────────────────────────────────────────────────────── */
+.req-detail-modal {
+  max-width: 780px;
+  width: 95%;
+}
+
+.req-stats-strip {
+  grid-template-columns: repeat(4, 1fr) !important;
+}
+
+/* Linked FDR unlinked notice */
+.req-fdr-unlinked-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  background-color: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: var(--radius-md);
+  padding: 0.75rem;
+  font-size: 0.8125rem;
+  color: #92400e;
+  line-height: 1.4;
+}
+
+/* Status update section */
+.req-status-update-card {
+  margin-top: 1rem;
+}
+
+.req-status-action-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.req-update-status-btn {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.req-status-form-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+/* Terminal state notice */
+.req-terminal-notice {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: #f8fafc;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 0.75rem 1rem;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  margin-top: 0.75rem;
+}
+
+/* ── Status History Timeline ─────────────────────────────────────────────────── */
+.req-history-card {
+  margin-top: 1rem;
+}
+
+.req-history-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding-top: 0.25rem;
+}
+
+.req-history-entry {
+  display: flex;
+  gap: 0.875rem;
+  position: relative;
+}
+
+.req-history-dot-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+  width: 20px;
+}
+
+.req-history-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+
+.dot-current {
+  background-color: var(--color-primary-blue);
+  box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.2);
+}
+
+.dot-past {
+  background-color: var(--border-medium);
+}
+
+.req-history-line {
+  width: 2px;
+  flex: 1;
+  background-color: var(--border-light);
+  min-height: 16px;
+  margin: 4px 0;
+}
+
+.req-history-content {
+  flex: 1;
+  padding-bottom: 1rem;
+}
+
+.req-history-status-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.req-history-arrow {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+.req-history-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin-top: 0.3rem;
+}
+
+.req-history-timestamp {
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.req-history-remarks {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  font-style: italic;
+}
+
+/* ── Utility helpers (used in new components) ───────────────────────────────── */
+.text-muted { color: var(--text-muted); }
+.text-success { color: #047857; }
+.text-danger { color: #be123c; }
+.font-mono { font-family: var(--font-mono); }
+.font-medium { font-weight: 500; }
+.font-semibold { font-weight: 600; }
+
+/* modal-grid-2 reused from FDRDetailModal */
+.modal-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+@media (max-width: 640px) {
+  .modal-grid-2 {
+    grid-template-columns: 1fr;
+  }
+
+  .req-fdr-selected-preview {
+    grid-template-columns: 1fr;
+  }
+
+  .req-stats-strip {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  .req-type-toggle {
+    flex-direction: column;
+  }
+}
+
 /* ==========================================================================
    REPORTS & CAG AUDIT VIEW STYLES
    ========================================================================== */

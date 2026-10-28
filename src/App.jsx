@@ -8,6 +8,17 @@ import FDRFormModal from './components/FDRFormModal';
 import FDRDeleteConfirmModal from './components/FDRDeleteConfirmModal';
 import PlaceholderView from './components/PlaceholderView';
 import Toast from './components/Toast';
+import RequestManagement from './components/RequestManagement';
+import RequestFormModal from './components/RequestFormModal';
+import RequestDetailModal from './components/RequestDetailModal';
+import MaturityAlerts from './components/MaturityAlerts';
+import Reports from './components/Reports';
+import {
+  loadRequests,
+  saveRequests,
+  applyStatusChange,
+  synchronizeFDRWithApprovedRequest,
+} from './data/requestStorage';
 import {
   calculateFDRStatistics,
   computeFDRStatus,
@@ -49,6 +60,12 @@ export default function App() {
   // Layout states
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+
+  // Request Management state (stored separately from FDR records)
+  const [requests, setRequests] = useState(() => loadRequests());
+  const [isRequestFormOpen, setIsRequestFormOpen] = useState(false);
+  const [requestFormType, setRequestFormType] = useState('Renewal');
+  const [selectedRequest, setSelectedRequest] = useState(null);
 
   // Toast feedback state
   const [toast, setToast] = useState(null);
@@ -170,6 +187,67 @@ export default function App() {
     );
   };
 
+
+  // ── Request Management Handlers ────────────────────────────────────────────
+
+  // Called when a new request is submitted from the form modal
+  const handleRequestSubmit = (newRequest) => {
+    const updatedRequests = [newRequest, ...requests];
+    setRequests(updatedRequests);
+    saveRequests(updatedRequests);
+    setIsRequestFormOpen(false);
+    showToast(
+      'Request ' + newRequest.requestRef + ' submitted successfully.',
+      'success',
+      'Request Submitted'
+    );
+  };
+
+  // Called when the detail modal issues a status update
+  const handleRequestStatusUpdate = (updatedRequest) => {
+    const updatedRequests = requests.map((r) =>
+      r.id === updatedRequest.id ? updatedRequest : r
+    );
+    setRequests(updatedRequests);
+    saveRequests(updatedRequests);
+
+    // If request has transitioned to Approved, safely synchronize linked FDR master record
+    if (updatedRequest.status === 'Approved' && updatedRequest.fdrId) {
+      const targetFDR = records.find(
+        (r) => r.id === updatedRequest.fdrId || (updatedRequest.fdrNumber && r.fdrNumber === updatedRequest.fdrNumber)
+      );
+
+      if (targetFDR) {
+        const synchronizedFDR = synchronizeFDRWithApprovedRequest(targetFDR, updatedRequest);
+        const updatedRecords = records.map((r) =>
+          r.id === targetFDR.id ? synchronizedFDR : r
+        );
+        setRecords(updatedRecords);
+        saveFDRRecords(updatedRecords);
+
+        // Keep inspected detail modal in sync if open on this record
+        if (selectedFDR && selectedFDR.id === targetFDR.id) {
+          setSelectedFDR(synchronizedFDR);
+        }
+      }
+    }
+
+    // Keep the detail modal open with fresh data
+    setSelectedRequest(updatedRequest);
+    showToast(
+      'Request ' + updatedRequest.requestRef + ' status updated to ' + updatedRequest.status + '.',
+      'success',
+      'Status Updated'
+    );
+  };
+
+  // Derive active / pending renewal requests count for sidebar badge
+  const pendingRenewalCount = useMemo(() => {
+    return requests.filter(
+      (r) => r.requestType === 'Renewal' && (r.status === 'Requested' || r.status === 'Under Review')
+    ).length;
+  }, [requests]);
+
   return (
     <div className="portal-layout">
       {/* Toast Feedback */}
@@ -185,6 +263,7 @@ export default function App() {
         setMobileOpen={setMobileSidebarOpen}
         expiringCount={stats.expiringSoonCount}
         maturedCount={stats.maturedCount}
+        renewalCount={pendingRenewalCount}
       />
 
       {/* Main Content Area */}
@@ -332,62 +411,42 @@ export default function App() {
 
           {/* VIEW: MATURITY ALERTS */}
           {activeNav === 'maturity_alerts' && (
-            <div className="view-maturity-alerts">
-              <div className="maturity-header-card">
-                <div className="maturity-header-content">
-                  <div className="alert-big-icon">
-                    <Clock size={32} className="text-amber" />
-                  </div>
-                  <div>
-                    <h2 className="maturity-view-title">
-                      Maturity & Regulatory Expiry Surveillance
-                    </h2>
-                    <p className="maturity-view-desc">
-                      Mandatory tracking for FDRs within the 30-day expiry threshold and
-                      matured deposits requiring renewal or release under APH Norms.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="maturity-stats-pillbox">
-                  <div className="maturity-stat-pill warning">
-                    <span className="pill-number">{stats.expiringSoonCount}</span>
-                    <span className="pill-label">Expiring ≤30 Days</span>
-                  </div>
-                  <div className="maturity-stat-pill danger">
-                    <span className="pill-number">{stats.maturedCount}</span>
-                    <span className="pill-label">Already Matured</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Table filtered specifically to Expiring Soon & Matured */}
-              <FDRTable
-                records={records.filter((r) => {
-                  const s = computeFDRStatus(r);
-                  return s === 'expiring_soon' || s === 'matured';
-                })}
-                onViewDetails={(fdr) => setSelectedFDR(fdr)}
-                onOpenAddModal={handleOpenAddModal}
-                onEditRecord={handleOpenEditModal}
-                onDeleteRecord={handleOpenDeleteModal}
-                searchQuery={searchQuery}
-                setSearchQuery={setSearchQuery}
-                selectedStatusFilter={selectedStatusFilter}
-                setSelectedStatusFilter={setSelectedStatusFilter}
-                selectedBankFilter={selectedBankFilter}
-                setSelectedBankFilter={setSelectedBankFilter}
-                title="High-Priority Expiry Watchlist"
-                subtitle="Showing all deposits where remaining days ≤ 30 or maturity date has passed"
-              />
-            </div>
+            <MaturityAlerts
+              records={records}
+              onViewDetails={(fdr) => setSelectedFDR(fdr)}
+              onEditRecord={handleOpenEditModal}
+              onDeleteRecord={handleOpenDeleteModal}
+              onOpenAddModal={handleOpenAddModal}
+            />
           )}
 
-          {/* VIEW: SECONDARY SECTIONS (PLACEHOLDERS) */}
-          {(activeNav === 'renewal_requests' ||
-            activeNav === 'release_requests' ||
-            activeNav === 'reports' ||
-            activeNav === 'settings') && (
+          {/* VIEW: RENEWAL & RELEASE REQUEST MANAGEMENT */}
+          {(activeNav === 'renewal_requests' || activeNav === 'release_requests') && (
+            <RequestManagement
+              requests={requests}
+              fdrRecords={records}
+              activeNav={activeNav}
+              onNewRequest={(defaultType) => {
+                setRequestFormType(
+                  defaultType || (activeNav === 'release_requests' ? 'Release' : 'Renewal')
+                );
+                setIsRequestFormOpen(true);
+              }}
+              onViewRequest={(req) => setSelectedRequest(req)}
+            />
+          )}
+
+          {/* VIEW: REPORTS & CAG AUDIT SUITE */}
+          {activeNav === 'reports' && (
+            <Reports
+              records={records}
+              onViewRecord={(fdr) => setSelectedFDR(fdr)}
+              showToast={showToast}
+            />
+          )}
+
+          {/* VIEW: SETTINGS (PLACEHOLDER) */}
+          {activeNav === 'settings' && (
             <PlaceholderView
               sectionId={activeNav}
               onNavigateToDashboard={() => setActiveNav('dashboard')}
@@ -422,6 +481,26 @@ export default function App() {
         onConfirm={handleConfirmDelete}
         onCancel={() => setDeletingFDR(null)}
       />
+
+      {/* Request Form Modal — New Renewal or Release Request */}
+      <RequestFormModal
+        isOpen={isRequestFormOpen}
+        onClose={() => setIsRequestFormOpen(false)}
+        onSubmit={handleRequestSubmit}
+        fdrRecords={records}
+        existingRequests={requests}
+        defaultRequestType={requestFormType}
+      />
+
+      {/* Request Detail Modal — View and Update Request Status */}
+      {selectedRequest && (
+        <RequestDetailModal
+          request={selectedRequest}
+          fdrRecords={records}
+          onClose={() => setSelectedRequest(null)}
+          onStatusUpdate={handleRequestStatusUpdate}
+        />
+      )}
     </div>
   );
 }
